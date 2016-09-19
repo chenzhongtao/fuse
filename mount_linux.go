@@ -57,6 +57,7 @@ func isBoringFusermountError(err error) bool {
 
 func mount(dir string, conf *mountConfig, ready chan<- struct{}, errp *error) (fusefd *os.File, err error) {
 	// linux mount is never delayed
+	log.Print("[mount]")
 	close(ready)
 
 	fds, err := syscall.Socketpair(syscall.AF_FILE, syscall.SOCK_STREAM, 0)
@@ -130,10 +131,26 @@ func mount(dir string, conf *mountConfig, ready chan<- struct{}, errp *error) (f
 	buf := make([]byte, 32) // expect 1 byte
 	oob := make([]byte, 32) // expect 24 bytes
 	_, oobn, _, _, err := uc.ReadMsgUnix(buf, oob)
+	log.Printf("oobn:　%d", oobn) // 24
 	scms, err := syscall.ParseSocketControlMessage(oob[:oobn])
 	if err != nil {
 		return nil, fmt.Errorf("ParseSocketControlMessage: %v", err)
 	}
+	log.Printf("scms: %+v",scms)
+	/*
+	2016/09/19 11:15:40 scms: [{Header:{Len:20 Level:1 Type:1 X__cmsg_data:[]} Data:[7 0 0 0]}]
+
+	root@zhong1:/home/code/github/Costor# ls -alh /proc/24607/fd/
+	total 0
+	dr-x------ 2 root root  0 Sep 19 11:16 .
+	dr-xr-xr-x 9 root root  0 Sep 19 11:16 ..
+	lrwx------ 1 root root 64 Sep 19 11:16 0 -> /dev/pts/4
+	lrwx------ 1 root root 64 Sep 19 11:16 1 -> /dev/pts/4
+	lrwx------ 1 root root 64 Sep 19 11:16 2 -> /dev/pts/4
+	lrwx------ 1 root root 64 Sep 19 11:16 6 -> anon_inode:[eventpoll]
+	lrwx------ 1 root root 64 Sep 19 11:16 7 -> /dev/fuse
+
+	*/
 	if len(scms) != 1 {
 		return nil, fmt.Errorf("expected 1 SocketControlMessage; got scms = %#v", scms)
 	}
@@ -145,6 +162,7 @@ func mount(dir string, conf *mountConfig, ready chan<- struct{}, errp *error) (f
 	if len(gotFds) != 1 {
 		return nil, fmt.Errorf("wanted 1 fd; got %#v", gotFds)
 	}
+	log.Printf("gotFds[0]: %d" ,gotFds[0])
 	f := os.NewFile(uintptr(gotFds[0]), "/dev/fuse")
 	return f, nil
 }

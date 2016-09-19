@@ -726,22 +726,34 @@ type bmapOut struct {
 	Block uint64
 }
 
+// 对应c语言中 fuse_in_header
 type inHeader struct {
+	// 本次请求数据包的长度
 	Len    uint32
+	// 操作码
 	Opcode uint32
+	// 请求的uid,回复包需要
 	Unique uint64
+	// 本次操作涉及的文件系统 node id
 	Nodeid uint64
+	// 调用者的id
 	Uid    uint32
+	// 调用者所在组id
 	Gid    uint32
+	//
 	Pid    uint32
+	// padding 对齐使用 填充至8字节倍数
 	_      uint32
 }
 
 const inHeaderSize = int(unsafe.Sizeof(inHeader{}))
 
 type outHeader struct {
+	// 本次回复包的长度
 	Len    uint32
+	// 错误码
 	Error  int32
+	// 请求的uid,回复包需要
 	Unique uint64
 }
 

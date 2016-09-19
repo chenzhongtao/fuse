@@ -106,6 +106,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"sync"
 	"syscall"
@@ -155,9 +156,11 @@ func (e *MountpointDoesNotExistError) Error() string {
 // possible errors. Incoming requests on Conn must be served to make
 // progress.
 func Mount(dir string, options ...MountOption) (*Conn, error) {
+	log.Print("[Mount]")
 	conf := mountConfig{
 		options: make(map[string]string),
 	}
+	// option为注册的函数，其实就是设置 conf.options
 	for _, option := range options {
 		if err := option(&conf); err != nil {
 			return nil, err
@@ -168,6 +171,7 @@ func Mount(dir string, options ...MountOption) (*Conn, error) {
 	c := &Conn{
 		Ready: ready,
 	}
+	// f (os.File)是打开的/dev/fuse, 挂载时通过UNIX套接字传回的。
 	f, err := mount(dir, &conf, ready, &c.MountError)
 	if err != nil {
 		return nil, err
@@ -202,7 +206,9 @@ var (
 	ErrClosedWithoutInit = errors.New("fuse connection closed without init")
 )
 
+//挂载初始化
 func initMount(c *Conn, conf *mountConfig) error {
+	log.Print("[initMount]")
 	req, err := c.ReadRequest()
 	if err != nil {
 		if err == io.EOF {
@@ -444,7 +450,7 @@ type message struct {
 	conn *Conn
 	buf  []byte    // all bytes
 	hdr  *inHeader // header
-	off  int       // offset for reading additional fields
+	off  int       // offset for reading additional fields   等于 inHeaderSize
 }
 
 func (m *message) len() uintptr {
@@ -545,7 +551,9 @@ func (c *Conn) Protocol() Protocol {
 //
 // Caller must call either Request.Respond or Request.RespondError in
 // a reasonable time. Caller must not retain Request after that call.
+// 读取一个请求包
 func (c *Conn) ReadRequest() (Request, error) {
+	log.Print("[Conn:ReadRequest]")
 	m := getMessage(c)
 loop:
 	c.rio.RLock()
@@ -590,6 +598,8 @@ loop:
 	}
 
 	m.off = inHeaderSize
+
+	log.Printf("message: off : %d, hdr : %+v, datalen : %d", m.off, m.hdr, int(m.len()))
 
 	// Convert to data structures.
 	// Do not trust kernel to hand us well-formed data.
@@ -1047,7 +1057,7 @@ loop:
 	}
 
 	return req, nil
-
+// 错误的包
 corrupt:
 	Debug(malformedMessage{})
 	putMessage(m)
@@ -1088,6 +1098,7 @@ func errorString(err error) string {
 	return err.Error()
 }
 
+// 写数据给内核
 func (c *Conn) writeToKernel(msg []byte) error {
 	out := (*outHeader)(unsafe.Pointer(&msg[0]))
 	out.Len = uint32(len(msg))
@@ -1106,6 +1117,7 @@ func (c *Conn) writeToKernel(msg []byte) error {
 	return err
 }
 
+// 响应给内核
 func (c *Conn) respond(msg []byte) {
 	if err := c.writeToKernel(msg); err != nil {
 		Debug(bugKernelWriteError{
@@ -1225,6 +1237,7 @@ func (r *InitResponse) String() string {
 }
 
 // Respond replies to the request with the given response.
+// InitRequest的响应
 func (r *InitRequest) Respond(resp *InitResponse) {
 	buf := newBuffer(unsafe.Sizeof(initOut{}))
 	out := (*initOut)(buf.alloc(unsafe.Sizeof(initOut{})))

@@ -33,7 +33,7 @@ const (
 
 // An FS is the interface required of a file system.
 //
-// Other FUSE requests can be handled by implementing methods from the
+// Other FUSE requests can be handled by implementing实现 methods from the
 // FS* interfaces, for example FSStatfser.
 type FS interface {
 	// Root is called to obtain the Node for the file system root.
@@ -76,7 +76,7 @@ type FSInodeGenerator interface {
 
 // A Node is the interface required of a file or directory.
 // See the documentation for type FS for general information
-// pertaining to all methods.
+// pertaining附属的 to all methods.
 //
 // A Node must be usable as a map key, that is, it cannot be a
 // function, map or slice.
@@ -411,6 +411,7 @@ func (s *Server) Serve(fs FS) error {
 	s.handle = append(s.handle, nil)
 
 	for {
+		// 读一个请求
 		req, err := s.conn.ReadRequest()
 		if err != nil {
 			if err == io.EOF {
@@ -422,6 +423,7 @@ func (s *Server) Serve(fs FS) error {
 		s.wg.Add(1)
 		go func() {
 			defer s.wg.Done()
+			// 处理请求
 			s.serve(req)
 		}()
 	}
@@ -766,6 +768,7 @@ func initLookupResponse(s *fuse.LookupResponse) {
 	s.EntryValid = entryValidTime
 }
 
+// 处理请求
 func (c *Server) serve(r fuse.Request) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

@@ -29,8 +29,10 @@ func main() {
 	}
 	mountpoint := flag.Arg(0)
 
+	log.Printf("mountpoint: %s",mountpoint)
 	c, err := fuse.Mount(
 		mountpoint,
+		// 函数指针
 		fuse.FSName("helloworld"),
 		fuse.Subtype("hellofs"),
 		fuse.LocalVolume(),
