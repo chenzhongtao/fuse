@@ -1772,6 +1772,7 @@ func (r *ReadRequest) String() string {
 
 // Respond replies to the request with the given response.
 func (r *ReadRequest) Respond(resp *ReadResponse) {
+	//新建一个回复包buf
 	buf := newBuffer(uintptr(len(resp.Data)))
 	buf = append(buf, resp.Data...)
 	r.respond(buf)

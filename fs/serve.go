@@ -1231,6 +1231,7 @@ func (c *Server) handleRequest(ctx context.Context, node Node, snode *serveNode,
 			if h, ok := handle.(HandleReadAller); ok {
 				if shandle.readData == nil {
 					data, err := h.ReadAll(ctx)
+					log.Printf("data: %s\n",data)
 					if err != nil {
 						return err
 					}
